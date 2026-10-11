@@ -1,17 +1,26 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from src.app import app
 
-client = TestClient(app)
+
+@pytest.fixture
+def client():
+    with TestClient(app) as test_client:
+        yield test_client
 
 
-def test_unregister_activity_removes_participant():
+def test_unregister_activity_removes_participant(client):
+    # Arrange
     activity_name = "Chess Club"
     email = "teststudent@mergington.edu"
 
+    # Act
     signup_response = client.post(f"/activities/{activity_name}/signup?email={email}")
-    assert signup_response.status_code == 200
-
     unregister_response = client.post(f"/activities/{activity_name}/unregister?email={email}")
+    activities_response = client.get("/activities")
+
+    # Assert
+    assert signup_response.status_code == 200
     assert unregister_response.status_code == 200
-    assert email not in client.get("/activities").json()[activity_name]["participants"]
+    assert email not in activities_response.json()[activity_name]["participants"]
